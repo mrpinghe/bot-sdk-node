@@ -31,6 +31,7 @@ service.createService(opts, (bot) => {
     var msg = message.text.content;
     console.log(`Got message from ${from} text: ${msg}`);
     reply = "";
+
     if (msg.toLowerCase() == "help") {
       reply = "get gitlab hook - give you the port number and bot ID needed to configure webhook";
       reply += "\nget gitlab token - give you the secret token needed to configure webhook. Unique per chat.";
@@ -49,6 +50,28 @@ service.createService(opts, (bot) => {
     if (reply != "") {
       bot.sendMessage(reply, (sendStatus) => {
         console.log(`message successfully sent with status ${sendStatus}`);
+      });
+    }
+
+    var atNotation = /@[a-z0-9]*/ig;
+    var results = msg.match(atNotation);
+
+    if (results != null) {
+      var isAll = false;
+      var unique = new Set();
+      for (let target of results) {
+        if (target == "@here" || target == "@everyone" || target == "@all") {
+          isAll = true;
+          break;
+        }
+        else {
+          unique.add(target);
+        }
+      }
+      bot.pushover(unique, isAll, function(user) {
+        bot.sendMessage("Pushover notification may have failed", (sendStatus) => {
+          console.log(`message successfully sent with status ${sendStatus}`);
+        });
       });
     }
   });
