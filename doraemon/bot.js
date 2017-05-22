@@ -69,7 +69,7 @@ service.createService(opts, (bot) => {
         }
       }
       bot.pushover(unique, isAll, function(user) {
-        bot.sendMessage("Pushover notification may have failed", (sendStatus) => {
+        bot.sendMessage(`Pushover notification may have failed for ${user}`, (sendStatus) => {
           console.log(`message successfully sent with status ${sendStatus}`);
         });
       });
