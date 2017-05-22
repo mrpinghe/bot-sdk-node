@@ -65,7 +65,7 @@ service.createService(opts, (bot) => {
           break;
         }
         else {
-          unique.add(target);
+          unique.add(target.toLowerCase());
         }
       }
       bot.pushover(unique, isAll, function(user) {
