@@ -42,8 +42,9 @@ service.createService(opts, (bot) => {
       var cmd = 'dig +short myip.opendns.com @resolver1.opendns.com';
 
       exec(cmd, function(error, stdout, stderr) {
-        var ip = stdout.trim();
-        reply = `https://${ip}:${opts.port}/bots/${bot.botID}/gitlab`;
+        bot.sendMessage(`https://${stdout.trim()}:${opts.port}/bots/${bot.botID}/gitlab`, (sendStatus) => {
+          console.log(`message successfully sent with status ${sendStatus}`);
+        });
       });
     }
     else if (msg.toLowerCase() == "get gitlab token") {
