@@ -38,7 +38,13 @@ service.createService(opts, (bot) => {
       reply += "\nreset gitlab token - reset the secret token needed to configure webhook. Old hooks will break!";
     }
     else if (msg.toLowerCase() == "get gitlab hook") {
-      reply = `Port: ${opts.port}; Bot ID: ${bot.botID}`;
+      var exec = require('child_process').exec;
+      var cmd = 'dig +short myip.opendns.com @resolver1.opendns.com';
+
+      exec(cmd, function(error, stdout, stderr) {
+        var ip = stdout.trim();
+        reply = `https://${ip}:${opts.port}/bots/${bot.botID}/gitlab`;
+      });
     }
     else if (msg.toLowerCase() == "get gitlab token") {
       reply = bot.getGitlabToken();
