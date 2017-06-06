@@ -77,8 +77,7 @@ service.createService(opts, (bot) => {
   });
   bot.on('gitlabPush', (data) => {
     console.log("Got push event from gitlab")
-    var url = data.project.homepage.replace("http", "hxxp");
-    var msg = `${data['user_name']} pushed to project ${data.project.name} (url: ${url})`;
+    var msg = `${data['user_name']} pushed to project ${data.project.name} (url: ${data.project.homepage})`;
     bot.sendMessage(msg, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
