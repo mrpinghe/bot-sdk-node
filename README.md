@@ -36,13 +36,13 @@ node doraemon/bot.js
 The specific setup instruction is available on [gitlab's official site](https://docs.gitlab.com/ce/user/project/integrations/webhooks.html)
 
 To set up a webhook, you need two pieces of information
-1. URL where you are running the bot, https://$host:$port/bots/$botID/gitlab
+1. Webhook URL
 2. Secret token
 
 
 Start a chat with the bot, and text "help" to get a list of commands
 
-Below will get you the $port and $botID needed to construct the URL
+Below will get you the URL
 ```
 get gitlab hook
 ```
