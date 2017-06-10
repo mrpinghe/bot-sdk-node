@@ -33,9 +33,11 @@ service.createService(opts, (bot) => {
     reply = "";
 
     if (msg.toLowerCase() == "help") {
-      reply = "get gitlab hook - give you the port number and bot ID needed to configure webhook";
-      reply += "\nget gitlab token - give you the secret token needed to configure webhook. Unique per chat.";
-      reply += "\nreset gitlab token - reset the secret token needed to configure webhook. Old hooks will break!";
+      reply = "```";
+      reply += "\nget gitlab hook # return the webhook URL, unique per chat";
+      reply += "\nget gitlab token # return the webhook's secret token, unique per chat.";
+      reply += "\nreset gitlab token # reset the webhook's secret token. Old hooks will break!";
+      reply += "\n```"
     }
     else if (msg.toLowerCase() == "get gitlab hook") {
       var exec = require('child_process').exec;
