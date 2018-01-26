@@ -55,6 +55,27 @@ service.createService(opts, (bot) => {
     else if (msg.toLowerCase() == "reset gitlab token") {
       reply = bot.getGitlabToken(true);
     }
+    else if (msg.toLowerCase().startsWith("jira-")) {
+      var content = {
+          "issueKey": msg.toUpperCase().substring(5, msg.length)
+      };
+      bot.jira("getIssue", content, (errorMsg) => {
+        bot.sendMessage(`${errorMsg}`, (sendStatus) => {
+          console.log(`message successfully sent with status ${sendStatus}`);
+        });
+      });
+    }
+    else if (msg.toLowerCase().startsWith("loot:")) {
+      var content = {
+          "loot": msg.substring(5, msg.length),
+          "summary": msg.substring(5, Math.min(25, msg.length)).replace(/\n/g, " ")
+      };
+      bot.jira("create", content, (errorMsg) => {
+        bot.sendMessage(`${errorMsg}`, (sendStatus) => {
+          console.log(`message successfully sent with status ${sendStatus}`);
+        });
+      });
+    }
 
     if (reply != "") {
       bot.sendMessage(reply, (sendStatus) => {
@@ -90,6 +111,14 @@ service.createService(opts, (bot) => {
     bot.sendMessage(msg, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
+  });
+  bot.on('jiraResp', (type, data) => {
+    console.log(`${type} event completed`)
+    var msg = `${data}`;
+    bot.sendMessage(msg, (sendStatus) => {
+      console.log(`message successfully sent with status ${sendStatus}`);
+    });
+
   });
   bot.on('join', (members, conversation) => {
     console.log(`New members ${members} joined conversation ${conversation.id}`);
