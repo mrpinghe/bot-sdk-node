@@ -68,7 +68,7 @@ service.createService(opts, (bot) => {
     else if (msg.toLowerCase().startsWith("loot:")) {
       var content = {
           "loot": msg.substring(5, msg.length),
-          "summary": msg.substring(5, Math.min(25, msg.length)).replace(/\n/g, " ")
+          "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " ")
       };
       bot.jira("create", content, (errorMsg) => {
         bot.sendMessage(`${errorMsg}`, (sendStatus) => {
