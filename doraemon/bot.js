@@ -27,6 +27,7 @@ var opts = config.getBotOptions();
 
 service.createService(opts, (bot) => {
   console.log(`Bot instance created ${bot.botID}`);
+
   bot.on('message', (from, message) => {
     var msg = message.text.content;
     console.log(`Got message from ${from} text: ${msg}`);
@@ -66,14 +67,26 @@ service.createService(opts, (bot) => {
       });
     }
     else if (msg.toLowerCase().startsWith("loot:")) {
-      var content = {
-          "loot": msg.substring(5, msg.length),
-          "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " ")
-      };
-      bot.jira("create", content, (errorMsg) => {
-        bot.sendMessage(`${errorMsg}`, (sendStatus) => {
-          console.log(`message successfully sent with status ${sendStatus}`);
-        });
+      bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
+          console.log(`API call got status ${statusCode}`);
+          var name = 'Unknown';
+          try {
+            var data = JSON.parse(respData);
+            name = data[0].name;
+          } catch (e) {
+            console.log("Not JSON parsable");
+          }
+
+          var content = {
+              "loot": msg.substring(5, msg.length),
+              "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " "),
+              "reporter": name
+          };
+          bot.jira("create", content, (errorMsg) => {
+            bot.sendMessage(`${errorMsg}`, (sendStatus) => {
+              console.log(`message successfully sent with status ${sendStatus}`);
+            });
+          });
       });
     }
 
@@ -105,6 +118,8 @@ service.createService(opts, (bot) => {
       });
     }
   });
+
+
   bot.on('gitlabPush', (data) => {
     console.log("Got push event from gitlab")
     var msg = `${data['user_name']} pushed to project ${data.project.name} (url: ${data.project.homepage})`;
@@ -112,19 +127,19 @@ service.createService(opts, (bot) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
   });
+
+
   bot.on('jiraResp', (type, data) => {
     console.log(`${type} event completed`)
     var msg = `${data}`;
     bot.sendMessage(msg, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
-
   });
+
+
   bot.on('join', (members, conversation) => {
     console.log(`New members ${members} joined conversation ${conversation.id}`);
-//    bot.sendMessage('welcome', (sendStatus) => {
-//      console.log(`message successfully sent with status ${sendStatus}`);
-//    });
   });
   bot.on('leave', (members, conversation) => {
     console.log(`Members ${members} have left conversation ${conversation.id}`);
