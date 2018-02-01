@@ -35,9 +35,10 @@ service.createService(opts, (bot) => {
 
     if (msg.toLowerCase() == "help") {
       reply = "```";
-      reply += "\nget gitlab hook # return the webhook URL, unique per chat";
-      reply += "\nget gitlab token # return the webhook's secret token, unique per chat.";
-      reply += "\nreset gitlab token # reset the webhook's secret token. Old hooks will break!";
+      reply += "\n+ get gitlab hook # return the webhook URL, unique per chat";
+      reply += "\n+ get gitlab token # return the webhook's secret token, unique per chat.";
+      reply += "\n+ reset gitlab token # reset the webhook's secret token. Old hooks will break!";
+      reply += "\n+ jira help # get JIRA integration related help message";
       reply += "\n```"
     }
     else if (msg.toLowerCase() == "get gitlab hook") {
@@ -56,17 +57,59 @@ service.createService(opts, (bot) => {
     else if (msg.toLowerCase() == "reset gitlab token") {
       reply = bot.getGitlabToken(true);
     }
-    else if (msg.toLowerCase().startsWith("jira-")) {
-      var content = {
-          "issueKey": msg.toUpperCase().substring(5, msg.length)
-      };
-      bot.jira("getIssue", content, (errorMsg) => {
-        bot.sendMessage(`${errorMsg}`, (sendStatus) => {
-          console.log(`message successfully sent with status ${sendStatus}`);
-        });
-      });
+    else if (msg.toLowerCase() == "jira help") {
+      reply = "```";
+      reply += "\n+ set jira <api URL> # e.g. jira.example.com, jira.example.com:8443/rest/api/latest";
+      reply += "\n\t1. only support https, port default 443, api root path default /rest/api/latest";
+      reply += "\n+ set jira auth <basic_auth_token> # e.g. dXNlcm5hbWU6cGFzc3dvcmQ=";
+      reply += "\n+ set jira alias <alias>=<key> # set up to 10 jira command aliases";
+      reply += "\n\t1. set jira alias note=PROJ would allow you to do \"note: <value>\" in the future ";
+      reply += "\n\t\tto create an issue under project PROJ with description = value";
+      reply += "\n\t2. set jira alias note=PROJ-10 would allow you to do \"note: <value>\" in the future ";
+      reply += "\n\t\tto append <value> to the issue PROJ-10";
+      reply += "\n+ remove jira alias <alias> - remove that jira aliases";
+      reply += "\n+ jira config # show current configs and aliases. SHA256 value of auth token is shown";
+      reply += "\n+ jira alias # show current aliases.";
+      reply += "\n```";
+    }
+    else if (msg.toLowerCase().startsWith("set jira")) {
+      var cmdArray = msg.split(/ +/);
+      if (cmdArray.length == 3) {
+        bot.configJira(cmdArray[2]);
+      }
+      else if (cmdArray.length == 4 && cmdArray[2] == "auth") {
+        bot.configJira(null, cmdArray[3]);
+      }
+      else if (cmdArray.length >= 4 && cmdArray[2] == "alias") {
+        if (cmdArray.length > 4) {
+          reply = "Please make sure it's in alias=key format. No space, one pair per command. "
+            +"alias is letters only, and key is alphanumeric plus dash";
+        }
+        else {
+          var pair = cmdArray[3].split("=");
+          if (pair.length == 2 && pair[0].match(/^[a-zA-Z]+$/) && pair[1].match(/^[a-zA-Z]+-?\d*$/)) {
+            var newAlias = {};
+            newAlias[pair[0]] = pair[1];
+            bot.configJira(null, null, newAlias);
+          }
+          else {
+            reply = "Please make sure it's in alias=key format. No space, one pair per command";
+              +"alias is letters only, and key is alphanumeric plus dash";
+          }
+        }
+      }
+      else {
+        reply = "Invalid format. Type \"jira help\" for more info";
+      }
+    }
+    else if (msg.toLowerCase() == "jira config") {
+      reply = bot.jiraConfig();
+    }
+    else if (msg.toLowerCase() == "jira alias") {
+      reply = JSON.stringify(bot.jiraConfig(1).aliases);
     }
     else if (msg.toLowerCase().startsWith("loot:")) {
+      // get the caller's name from Wire API
       bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
           console.log(`API call got status ${statusCode}`);
           var name = 'Unknown';
@@ -77,17 +120,25 @@ service.createService(opts, (bot) => {
             console.log("Not JSON parsable");
           }
 
+          // compile data for jira
           var content = {
               "loot": msg.substring(5, msg.length),
               "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " "),
               "reporter": name
           };
-          bot.jira("create", content, (errorMsg) => {
-            bot.sendMessage(`${errorMsg}`, (sendStatus) => {
-              console.log(`message successfully sent with status ${sendStatus}`);
-            });
-          });
+          bot.jira("create", content);
       });
+    }
+    else if (msg.toLowerCase().match(/^[a-z]+:/)) {
+      var cmd = msg.toLowerCase().match(/^[a-z]+:/)[0];
+      cmd = cmd.substring(0, cmd.length - 1);
+      if (bot.aliases != null && bot.aliases[cmd]) {
+        reply = bot.aliases[cmd];
+      }
+      else {
+        bot.jiraConfig(); // this will sync bot.aliases object with what's in persistent storage;
+        reply = "no match";
+      }
     }
 
     if (reply != "") {
@@ -100,22 +151,7 @@ service.createService(opts, (bot) => {
     var results = msg.match(atNotation);
 
     if (results != null) {
-      var isAll = false;
-      var unique = new Set();
-      for (let target of results) {
-        if (target == "@here" || target == "@everyone" || target == "@all") {
-          isAll = true;
-          break;
-        }
-        else {
-          unique.add(target.toLowerCase());
-        }
-      }
-      bot.pushover(unique, isAll, function(user) {
-        bot.sendMessage(`Pushover notification may have failed for ${user}`, (sendStatus) => {
-          console.log(`message successfully sent with status ${sendStatus}`);
-        });
-      });
+      bot.pushover(results);
     }
   });
 
@@ -128,11 +164,8 @@ service.createService(opts, (bot) => {
     });
   });
 
-
-  bot.on('jiraResp', (type, data) => {
-    console.log(`${type} event completed`)
-    var msg = `${data}`;
-    bot.sendMessage(msg, (sendStatus) => {
+  bot.on('send', (text) => {
+    bot.sendMessage(text, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
   });
@@ -148,8 +181,6 @@ service.createService(opts, (bot) => {
     console.log(`Conversation ${conversation.id} renamed to ${name}`);
   });
   bot.on('image', (from, asset) => {
-    console.log(`****** Got image from ${from}`);
-
     /*
     console.log(asset);
 
