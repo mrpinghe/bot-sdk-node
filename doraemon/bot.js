@@ -42,10 +42,12 @@ service.createService(opts, (bot) => {
       reply += "\n```"
     }
     else if (msg.toLowerCase() == "get gitlab hook") {
+      // exec sys command to get IP addr to provide full URL
       var exec = require('child_process').exec;
       var cmd = 'dig +short myip.opendns.com @resolver1.opendns.com';
 
       exec(cmd, function(error, stdout, stderr) {
+        // compose the actual url used for gitlab hook
         bot.sendMessage(`https://${stdout.trim()}:${opts.port}/bots/${bot.botID}/gitlab`, (sendStatus) => {
           console.log(`message successfully sent with status ${sendStatus}`);
         });
@@ -55,7 +57,7 @@ service.createService(opts, (bot) => {
       reply = bot.getGitlabToken();
     }
     else if (msg.toLowerCase() == "reset gitlab token") {
-      reply = bot.getGitlabToken(true);
+      reply = bot.getGitlabToken(true); // param indicate resetting
     }
     else if (msg.toLowerCase() == "jira help") {
       reply = "```";
@@ -74,12 +76,15 @@ service.createService(opts, (bot) => {
     }
     else if (msg.toLowerCase().startsWith("set jira")) {
       var cmdArray = msg.split(/ +/);
+      // set jira <url>
       if (cmdArray.length == 3) {
         bot.configJira(cmdArray[2]);
       }
+      // set jira auth <token>
       else if (cmdArray.length == 4 && cmdArray[2] == "auth") {
         bot.configJira(null, cmdArray[3]);
       }
+      // set jira alias <alias>=<value>
       else if (cmdArray.length >= 4 && cmdArray[2] == "alias") {
         if (cmdArray.length > 4) {
           reply = "Please make sure it's in alias=key format. No space, one pair per command. "
@@ -87,9 +92,12 @@ service.createService(opts, (bot) => {
         }
         else {
           var pair = cmdArray[3].split("=");
+          // make sure it's alias=value, alias is english letters only, while value is jira key format, PROJ or PROJ-18
           if (pair.length == 2 && pair[0].match(/^[a-zA-Z]+$/) && pair[1].match(/^[a-zA-Z]+-?\d*$/)) {
             var newAlias = {};
             newAlias[pair[0]] = pair[1];
+            console.log(`set new alias ${newAlias}`);
+            // update the current config with the new alias
             bot.configJira(null, null, newAlias);
           }
           else {
@@ -103,26 +111,30 @@ service.createService(opts, (bot) => {
       }
     }
     else if (msg.toLowerCase() == "jira config") {
+      // get the config in string format
       reply = bot.jiraConfig();
     }
     else if (msg.toLowerCase() == "jira alias") {
-      reply = JSON.stringify(bot.jiraConfig(1).aliases);
+      // get the config in json format, then get only the aliases field
+      reply = JSON.stringify(bot.jiraConfig(true).aliases);
     }
     else if (msg.toLowerCase().startsWith("loot:")) {
       // get the caller's name from Wire API
       bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
-          console.log(`API call got status ${statusCode}`);
+          console.log(`Naming API call for loot got status ${statusCode}`);
           var name = 'Unknown';
           try {
-            var data = JSON.parse(respData);
+            var data = JSON.parse(respData.toString());
             name = data[0].name;
+            console.log(`Got name ${name}`);
           } catch (e) {
-            console.log("Not JSON parsable");
+            console.log(`Parsing failure for name result: ${e}`);
           }
 
           // compile data for jira
           var content = {
-              "loot": msg.substring(5, msg.length),
+              "key": "LOOT",
+              "desc": msg.substring(5, msg.length),
               "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " "),
               "reporter": name
           };
@@ -130,14 +142,96 @@ service.createService(opts, (bot) => {
       });
     }
     else if (msg.toLowerCase().match(/^[a-z]+:/)) {
-      var cmd = msg.toLowerCase().match(/^[a-z]+:/)[0];
-      cmd = cmd.substring(0, cmd.length - 1);
-      if (bot.aliases != null && bot.aliases[cmd]) {
-        reply = bot.aliases[cmd];
+      var alias = msg.toLowerCase().match(/^[a-z]+:/)[0];
+      alias = alias.substring(0, alias.length - 1);
+      console.log(`Got alias ${alias}`);
+
+      var key;
+      if (bot.aliases != null && bot.aliases[alias]) {
+        console.log("found alias in bot cache");
+        key = bot.aliases[alias];
       }
       else {
+        console.log("sync bot cache and try match alias");
         bot.jiraConfig(); // this will sync bot.aliases object with what's in persistent storage;
-        reply = "no match";
+        key = bot.aliases[alias];
+      }
+
+      // meaning this is a valid alias, and the msg is not only the alias
+      if (key != null && msg.length > alias.length+1) {
+        bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
+            console.log(`Name API call for ${key} got status ${statusCode}`);
+            var name = 'Unknown';
+            try {
+              var data = JSON.parse(respData.toString());
+              name = data[0].name;
+              console.log(`Got name ${name}`);
+            } catch (e) {
+              console.log(`Parsing failure for name : ${e}`);
+            }
+
+            // compile data for jira
+            var content = {
+                "key": key.toUpperCase(),
+                "desc": msg.substring(alias.length+1, msg.length),
+                "summary": msg.substring(alias.length, Math.min(60, msg.length)).replace(/\n/g, " "),
+                "reporter": name
+            };
+
+            if (content.key.match(/^[A-Z]+$/)) {
+              console.log(`create new ${content.key}`);
+              bot.jira("create", content);
+            }
+            else {
+              console.log(`update ${content.key}`);
+
+              bot.jira("get", content, (obj) => {
+                content.origDesc = obj.fields.description;
+                bot.jira("update", content);
+              });
+/*
+              // get the full config in JSON format with raw auth token
+              // get the issue first to read the current description, so we can append to it
+              var jiraInfo = bot.jiraConfig(true, true);
+              var options = {
+                  host: jiraInfo.host,
+                  port: jiraInfo.port,
+                  path: `${jiraInfo.path}/issue/${content.key}`,
+                  headers: {
+                      "Authorization": `Basic ${jiraInfo.auth}`,
+                      "Content-Type": "application/json"
+                  },
+                  method: 'GET'
+              };
+
+              // to update, we need to get the issue first
+              bot.requestForJSON(options, null, (status, obj) => {
+                console.log(`Getting issue ${content.key} returned with status ${status}`);
+                switch (status) {
+                  case 1:
+                    if (obj.errorMessages != null) {
+                      console.log(`error getting jira issue ${content.key}`);
+                      bot.sendMessage(obj.errorMessages, (sendStatus) => {
+                        console.log(`message successfully sent with status ${sendStatus}`);
+                      });
+                    }
+                    else {
+                      content.origDesc = obj.fields.description;
+                      bot.jira("update", content);                      
+                    }
+                    break;
+                  default:
+                    console.log(obj);
+                    bot.emit("send", "Something went wrong :(");
+                    break;
+                }
+              });
+              */
+            }
+        });
+      }
+      else {
+        reply = "alias doesn't exist or there is no content";
       }
     }
 
