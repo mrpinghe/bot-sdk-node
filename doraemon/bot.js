@@ -189,45 +189,7 @@ service.createService(opts, (bot) => {
                 content.origDesc = obj.fields.description;
                 bot.jira("update", content);
               });
-/*
-              // get the full config in JSON format with raw auth token
-              // get the issue first to read the current description, so we can append to it
-              var jiraInfo = bot.jiraConfig(true, true);
-              var options = {
-                  host: jiraInfo.host,
-                  port: jiraInfo.port,
-                  path: `${jiraInfo.path}/issue/${content.key}`,
-                  headers: {
-                      "Authorization": `Basic ${jiraInfo.auth}`,
-                      "Content-Type": "application/json"
-                  },
-                  method: 'GET'
-              };
-
-              // to update, we need to get the issue first
-              bot.requestForJSON(options, null, (status, obj) => {
-                console.log(`Getting issue ${content.key} returned with status ${status}`);
-                switch (status) {
-                  case 1:
-                    if (obj.errorMessages != null) {
-                      console.log(`error getting jira issue ${content.key}`);
-                      bot.sendMessage(obj.errorMessages, (sendStatus) => {
-                        console.log(`message successfully sent with status ${sendStatus}`);
-                      });
-                    }
-                    else {
-                      content.origDesc = obj.fields.description;
-                      bot.jira("update", content);                      
-                    }
-                    break;
-                  default:
-                    console.log(obj);
-                    bot.emit("send", "Something went wrong :(");
-                    break;
-                }
-              });
-              */
-            }
+          }
         });
       }
       else {
