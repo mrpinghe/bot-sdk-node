@@ -4,7 +4,8 @@ This is a chat bot for [Wire™](https://wire.com) chat app, developed in Node.J
 
 ## Main Feature
 - Use as gitlab push webhooks, i.e. send you a chat message when somebody pushed to your repo
-- Get [Pushover](https://pushover.net/) to notify you when somebody "@ you" in the channel (beta)
+- Get [Pushover](https://pushover.net/) to notify you when somebody "@ you" in the channel
+- Create and update JIRA issues using self-defined aliases (beta)
 
 ## BYO Bot
 This contains the SDK files as well, and please refer to the [Wire Bot Node SDK](https://github.com/wireapp/bot-sdk-node) page for installation as well as cert generation instructions.
