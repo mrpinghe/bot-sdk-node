@@ -24,6 +24,8 @@ const config = require('./configs/config')
 
 var opts = config.getBotOptions();
 
+const IGNORED_ALIAS = ["http", "https", "ftp", "gopher", "smtp", "ws", "re"];
+
 
 service.createService(opts, (bot) => {
   console.log(`Bot instance created ${bot.botID}`);
@@ -91,14 +93,20 @@ service.createService(opts, (bot) => {
             +"alias is letters only, and key is alphanumeric plus dash";
         }
         else {
-          var pair = cmdArray[3].split("=");
+          var pair = cmdArray[3].toLowerCase().split("=");
           // make sure it's alias=value, alias is english letters only, while value is jira key format, PROJ or PROJ-18
-          if (pair.length == 2 && pair[0].match(/^[a-zA-Z]+$/) && pair[1].match(/^[a-zA-Z]+-?\d*$/)) {
-            var newAlias = {};
-            newAlias[pair[0]] = pair[1];
-            console.log(`set new alias ${newAlias}`);
-            // update the current config with the new alias
-            bot.configJira(null, null, newAlias);
+          if (pair.length == 2 && pair[0].match(/^[a-z]+$/) && pair[1].match(/^[a-z]+-?\d*$/)) {
+
+            if (IGNORED_ALIAS.includes(pair[0])) {
+              reply = `Please do not use one of the reserved words ${IGNORED_ALIAS} to avoid problems`;
+            }
+            else {
+              var newAlias = {};
+              newAlias[pair[0]] = pair[1].toUpperCase();
+              console.log(`set new alias ${newAlias}`);
+              // update the current config with the new alias
+              bot.configJira(null, null, newAlias);
+            }
           }
           else {
             reply = "Please make sure it's in alias=key format. No space, one pair per command";
@@ -118,6 +126,7 @@ service.createService(opts, (bot) => {
       // get the config in json format, then get only the aliases field
       reply = JSON.stringify(bot.jiraConfig(true).aliases);
     }
+    /*
     else if (msg.toLowerCase().startsWith("loot:")) {
       // get the caller's name from Wire API
       bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
@@ -141,6 +150,7 @@ service.createService(opts, (bot) => {
           bot.jira("create", content);
       });
     }
+    */
     else if (msg.toLowerCase().match(/^[a-z]+:/)) {
       var alias = msg.toLowerCase().match(/^[a-z]+:/)[0];
       alias = alias.substring(0, alias.length - 1);
@@ -172,7 +182,7 @@ service.createService(opts, (bot) => {
 
             // compile data for jira
             var content = {
-                "key": key.toUpperCase(),
+                "key": key.toUpperCase(), // key should have already been stored as upper case, but whatev
                 "desc": msg.substring(alias.length+1, msg.length),
                 "summary": msg.substring(alias.length, Math.min(60, msg.length)).replace(/\n/g, " "),
                 "reporter": name
@@ -192,7 +202,7 @@ service.createService(opts, (bot) => {
           }
         });
       }
-      else {
+      else if (!IGNORED_ALIAS.includes(alias)) {
         reply = "alias doesn't exist or there is no content";
       }
     }
