@@ -126,31 +126,6 @@ service.createService(opts, (bot) => {
       // get the config in json format, then get only the aliases field
       reply = JSON.stringify(bot.jiraConfig(true).aliases);
     }
-    /*
-    else if (msg.toLowerCase().startsWith("loot:")) {
-      // get the caller's name from Wire API
-      bot.sendApiCall("GET", `/bot/users?ids=${from}`, null, null, (respData, statusCode) => {
-          console.log(`Naming API call for loot got status ${statusCode}`);
-          var name = 'Unknown';
-          try {
-            var data = JSON.parse(respData.toString());
-            name = data[0].name;
-            console.log(`Got name ${name}`);
-          } catch (e) {
-            console.log(`Parsing failure for name result: ${e}`);
-          }
-
-          // compile data for jira
-          var content = {
-              "key": "LOOT",
-              "desc": msg.substring(5, msg.length),
-              "summary": msg.substring(5, Math.min(60, msg.length)).replace(/\n/g, " "),
-              "reporter": name
-          };
-          bot.jira("create", content);
-      });
-    }
-    */
     else if (msg.toLowerCase().match(/^[a-z]+:/)) {
       var alias = msg.toLowerCase().match(/^[a-z]+:/)[0];
       alias = alias.substring(0, alias.length - 1);
