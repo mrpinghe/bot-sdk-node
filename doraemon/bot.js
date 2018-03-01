@@ -25,6 +25,7 @@ const config = require('./configs/config')
 var opts = config.getBotOptions();
 
 const IGNORED_ALIAS = ["http", "https", "ftp", "gopher", "smtp", "ws", "re"];
+var user_hist = {};
 
 
 service.createService(opts, (bot) => {
@@ -33,6 +34,14 @@ service.createService(opts, (bot) => {
   bot.on('message', (from, message) => {
     var msg = message.text.content;
     console.log(`Got message from ${from} text: ${msg}`);
+    // when the client app generates preview, it sends the exact message again to the chat
+    // undesirable to alias, as that would do the same thing twice. So we check for that.
+    var is_dup = false;
+    if (user_hist[from] && user_hist[from] == msg) {
+      is_dup = true;
+    }
+    user_hist[from] = msg;
+
     reply = "";
 
     if (msg.toLowerCase() == "help") {
@@ -126,7 +135,7 @@ service.createService(opts, (bot) => {
       // get the config in json format, then get only the aliases field
       reply = JSON.stringify(bot.jiraConfig(true).aliases);
     }
-    else if (msg.toLowerCase().match(/^[a-z]+:/)) {
+    else if (msg.toLowerCase().match(/^[a-z]+:/) && !is_dup) {
       var alias = msg.toLowerCase().match(/^[a-z]+:/)[0];
       alias = alias.substring(0, alias.length - 1);
       console.log(`Got alias ${alias}`);
