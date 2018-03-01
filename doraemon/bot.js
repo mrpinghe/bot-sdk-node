@@ -159,7 +159,7 @@ service.createService(opts, (bot) => {
             var content = {
                 "key": key.toUpperCase(), // key should have already been stored as upper case, but whatev
                 "desc": msg.substring(alias.length+1, msg.length),
-                "summary": msg.substring(alias.length, Math.min(60, msg.length)).replace(/\n/g, " "),
+                "summary": msg.substring(alias.length+1, Math.min(60, msg.length)).replace(/\n/g, " "),
                 "reporter": name
             };
 
