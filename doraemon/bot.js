@@ -207,8 +207,15 @@ service.createService(opts, (bot) => {
 
 
   bot.on('gitlabPush', (data) => {
-    console.log("Got push event from gitlab")
-    var msg = `${data['user_name']} pushed to project ${data.project.name} (url: ${data.project.homepage})`;
+    console.log("Got push event from gitlab");
+
+    var allMsgs = "";
+    for (let commit of data.commits) {
+      allMsgs += commit.message + "\n";
+    }
+
+    var msg = `${data['user_name']} pushed ${data.commits.length} commits to ${data.project.name}.
+    Change log: ${allMsgs} Details: ${data.project.web_url}/compare/${data.before}...${data.after}`;
     bot.sendMessage(msg, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
