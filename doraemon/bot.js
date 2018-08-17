@@ -211,11 +211,13 @@ service.createService(opts, (bot) => {
 
     var allMsgs = "";
     for (let commit of data.commits) {
-      allMsgs += commit.message + "\n";
+      allMsgs += commit.message + "; ";
     }
 
-    var msg = `${data['user_name']} pushed ${data.commits.length} commits to ${data.project.name}.
-    Change log: ${allMsgs} Details: ${data.project.web_url}/compare/${data.before}...${data.after}`;
+    var msg = `${data['user_name']} pushed ${data.commits.length} commits to ${data.project.name}.\n`
+    +`Change log: ${allMsgs}\n`
+    +`Details: ${data.project.web_url}/compare/${data.before}...${data.after}`;
+    
     bot.sendMessage(msg, (sendStatus) => {
       console.log(`message successfully sent with status ${sendStatus}`);
     });
