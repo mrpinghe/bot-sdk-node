@@ -80,7 +80,7 @@ service.createService(opts, (bot) => {
       reply += "\n\t\tto create an issue under project PROJ with description = value";
       reply += "\n\t2. set jira alias note=PROJ-10 would allow you to do \"note: <value>\" in the future ";
       reply += "\n\t\tto append <value> to the issue PROJ-10";
-      reply += "\n+ remove jira alias <alias> - remove that jira aliases";
+      reply += "\n+ remove jira alias <alias1> <alias2> ... <aliasN> - remove a space separated list of jira aliases";
       reply += "\n+ jira config # show current configs and aliases. SHA256 value of auth token is shown";
       reply += "\n+ jira alias # show current aliases.";
       reply += "\n```";
