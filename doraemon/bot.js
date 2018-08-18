@@ -135,6 +135,16 @@ service.createService(opts, (bot) => {
       // get the config in json format, then get only the aliases field
       reply = JSON.stringify(bot.jiraConfig(true).aliases);
     }
+    else if (msg.toLowerCase().startsWith("remove jira alias ")) {
+      var cmdArray = msg.split(/ +/);
+
+      if (cmdArray.length >= 4 && cmdArray[3]) {
+        bot.configJira(null,null,null,cmdArray.slice(3, cmdArray.length));
+      }
+      else {
+        reply = "Invalid format. Type \"jira help\" for more info";        
+      }
+    }
     else if (msg.toLowerCase().match(/^[a-z]+:/) && !is_dup) {
       var alias = msg.toLowerCase().match(/^[a-z]+:/)[0];
       alias = alias.substring(0, alias.length - 1);
@@ -191,7 +201,7 @@ service.createService(opts, (bot) => {
       }
     }
 
-    if (reply != "") {
+    if (reply) {
       bot.sendMessage(reply, (sendStatus) => {
         console.log(`message successfully sent with status ${sendStatus}`);
       });
@@ -200,7 +210,7 @@ service.createService(opts, (bot) => {
     var atNotation = /@[a-z0-9]*/ig;
     var results = msg.match(atNotation);
 
-    if (results != null) {
+    if (results) {
       bot.pushover(results);
     }
   });
