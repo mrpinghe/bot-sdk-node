@@ -138,7 +138,7 @@ service.createService(opts, (bot) => {
     else if (msg.toLowerCase().startsWith("remove jira alias ")) {
       var cmdArray = msg.split(/ +/);
 
-      if (cmdArray.length >= 4 && cmdArray[3]) {
+      if (cmdArray.length >= 4 && cmdArray[3].trim() != "") {
         bot.configJira(null,null,null,cmdArray.slice(3, cmdArray.length));
       }
       else {
