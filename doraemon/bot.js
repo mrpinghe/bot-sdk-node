@@ -187,12 +187,14 @@ service.createService(opts, (bot) => {
               bot.jira("create", content);
             }
             else {
-              console.log(`update ${content.key}`);
+              // console.log(`update ${content.key}`);
 
-              bot.jira("get", content, (obj) => {
-                content.origDesc = obj.fields.description;
-                bot.jira("update", content);
-              });
+              // bot.jira("get", content, (obj) => {
+              //   content.origDesc = obj.fields.description;
+              //   bot.jira("update", content);
+              // });
+              console.log(`Add comment to ${content.key}`);
+              bot.jira("comment", content);
           }
         });
       }
